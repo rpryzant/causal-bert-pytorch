@@ -1,0 +1,8 @@
+sklearn
+scipy
+torch
+torchvision
+keras
+tensorflow
+transformers
+pandas

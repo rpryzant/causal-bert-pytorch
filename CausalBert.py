@@ -1,8 +1,7 @@
 """
-causal bert
-
-TODO use something faster/more lightweight than bert
-
+An extensible implementation of the Causal Bert model from 
+"Adapting Text Embeddings for Causal Inference" 
+    (https://arxiv.org/abs/1905.12741)
 """
 from collections import defaultdict
 import os
@@ -10,7 +9,6 @@ import pickle
 
 import scipy
 from sklearn.model_selection import KFold
-
 
 from keras.preprocessing.sequence import pad_sequences
 from torch.utils.data import Dataset, TensorDataset, DataLoader, RandomSampler, SequentialSampler
@@ -20,10 +18,8 @@ from transformers import BertModel, BertPreTrainedModel, AdamW, BertConfig
 from transformers import get_linear_schedule_with_warmup
 from transformers.modeling_bert import BertPreTrainingHeads
 
-
 from transformers import DistilBertTokenizer
 from transformers import DistilBertModel, DistilBertPreTrainedModel
-
 
 from torch.nn import CrossEntropyLoss
 
@@ -53,32 +49,6 @@ def gelu(x):
     return 0.5 * x * (1.0 + torch.erf(x / math.sqrt(2.0)))
 
 
-# def make_bow_vector(ids, vocab_size, use_counts=False, pad_idx=1):
-#     """ Make a sparse BOW vector from a tensor of dense ids.
-#     Args:
-#         ids: torch.LongTensor [batch, features]. Dense tensor of ids.
-#         vocab_size: vocab size for this tensor.
-#         use_counts: if true, the outgoing BOW vector will contain
-#             feature counts. If false, will contain binary indicators.
-#     Returns:
-#         The sparse bag-of-words representation of ids.
-#     """
-#     vec = torch.zeros(ids.shape[0], vocab_size)
-#     ones = torch.ones_like(ids, dtype=torch.float)
-#     if CUDA:
-#         vec = vec.cuda()
-#         ones = ones.cuda()
-#         ids = ids.cuda()
-#     vec.scatter_add_(1, ids, ones)
-#     vec[:, pad_idx] = 0.0  # zero out pad
-#     if not use_counts:
-#         vec = (vec != 0).float()
-#     return vec
-
-
-
-
-
 def make_bow_vector(ids, vocab_size, use_counts=False):
     """ Make a sparse BOW vector from a tensor of dense ids.
     Args:
@@ -104,26 +74,22 @@ def make_bow_vector(ids, vocab_size, use_counts=False):
 
 
 
-
-
 class CausalBert(DistilBertPreTrainedModel):
+    """The model itself."""
     def __init__(self, config):
         super().__init__(config)
 
         self.num_labels = config.num_labels
         self.vocab_size = config.vocab_size
 
-        # self.bert = BertModel(config)
         self.distilbert = DistilBertModel(config)
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.vocab_transform = nn.Linear(config.dim, config.dim)
         self.vocab_layer_norm = nn.LayerNorm(config.dim, eps=1e-12)
         self.vocab_projector = nn.Linear(config.dim, config.vocab_size)
 
-        # self.cls = BertPreTrainingHeads(config)
-
         self.Q_cls = nn.ModuleDict()
-        # for C in range(2):
+
         for T in range(2):
             # ModuleDict keys have to be strings..
             self.Q_cls['%d' % T] = nn.Sequential(
@@ -137,7 +103,6 @@ class CausalBert(DistilBertPreTrainedModel):
         self.init_weights()
 
     def forward(self, W_ids, W_len, W_mask, C, T, Y=None, use_mlm=True):
-        # unsupervised objective TODO do this cleaner, this is hacky/slow
         if use_mlm:
             W_len = W_len.unsqueeze(1) - 2 # -2 because of the +1 below
             mask_class = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
@@ -149,11 +114,9 @@ class CausalBert(DistilBertPreTrainedModel):
             mlm_labels.scatter_(1, mask, target_words)
             W_ids.scatter_(1, mask, MASK_IDX)
 
-        # outputs = self.bert(W_ids, attention_mask=W_mask)
         outputs = self.distilbert(W_ids, attention_mask=W_mask)
         seq_output = outputs[0]
         pooled_output = seq_output[:, 0]
-        # print([x.shape for x in seq_output])
         # seq_output, pooled_output = outputs[:2]
         # pooled_output = self.dropout(pooled_output)
 
@@ -209,8 +172,8 @@ class CausalBert(DistilBertPreTrainedModel):
 
 
 
-
 class CausalBertWrapper:
+    """Model wrapper in charge of training and inference."""
 
     def __init__(self, g_weight=1.0, Q_weight=0.1, mlm_weight=1.0,
         batch_size=32):
@@ -228,7 +191,6 @@ class CausalBertWrapper:
             'mlm': mlm_weight
         }
         self.batch_size = batch_size
-
 
 
     def train(self, texts, confounds, treatments, outcomes,
@@ -303,15 +265,6 @@ class CausalBertWrapper:
             # sort by (C, T), so you can get boundaries later
             # (do this here on cpu for speed)
             data.sort(key=lambda x: (x[1], x[2]))
-            # boundaries = []
-            # prev = None
-            # data_by_level = defaultdict(list)
-            # for i, x in enumerate(data):
-            #     cur = x[1], x[2]
-            #     data_by_level['%d%d' % (x[1].item(), x[2].item())].append(x)
-
-            # data_by_level = {k: v for k, v in data_by_level.items()}
-            # return data_by_level
             return data
 
         # fill with dummy values
@@ -329,6 +282,7 @@ class CausalBertWrapper:
             # out['W_raw'].append(W)
             encoded_sent = tokenizer.encode_plus(W, add_special_tokens=True,
                 max_length=128,
+                truncation=True,
                 pad_to_max_length=True)
 
             out['W_ids'].append(encoded_sent['input_ids'])
@@ -350,17 +304,13 @@ class CausalBertWrapper:
 
 if __name__ == '__main__':
     import pandas as pd
-    df = pd.read_csv(open('TEST_DF'))
+
+    df = pd.read_csv('testdata.csv')
     cb = CausalBertWrapper(batch_size=2,
-        g_weight=0.0, Q_weight=0, mlm_weight=1)
+        g_weight=0.1, Q_weight=0.1, mlm_weight=1)
     cb.train(df['review'], df.C_true, df.T_true, df.Y_sim)
-    # print(cb.inference(df['review'], df.C_true, df.T_proxy))
-    # print(cb.ATE(df.C_true, df['review'], df.Y_sim, platt_scaling=True))
+    print(cb.ATE(df.C_true, df['review'], platt_scaling=True))
 
-    import util
-    print(util.ATE_adjusted(df.C_true, df.T_true, df.Y_sim))
-
-    quit()
 
 
 

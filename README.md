@@ -33,7 +33,7 @@ df = pd.read_csv('testdata.csv')
 cb = CausalBertWrapper(batch_size=2,
     g_weight=0.1, Q_weight=0.1, mlm_weight=1)
 cb.train(df['text'], df['C'], df['T'], df['Y'], epochs=1)
-print(cb.ATE(df.C, df['text'], platt_scaling=True))
+print(cb.ATE(df['C'], df['text'], platt_scaling=True))
 ```
 
 

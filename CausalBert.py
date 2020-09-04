@@ -266,7 +266,6 @@ class CausalBertWrapper:
             # (do this here on cpu for speed)
             data.sort(key=lambda x: (x[1], x[2]))
             return data
-
         # fill with dummy values
         if treatments is None:
             treatments = [-1 for _ in range(len(confounds))]
@@ -305,11 +304,12 @@ class CausalBertWrapper:
 if __name__ == '__main__':
     import pandas as pd
 
-    df = pd.read_csv('testdata.csv')
+    df = pd.read_csv('testdata')
     cb = CausalBertWrapper(batch_size=2,
         g_weight=0.1, Q_weight=0.1, mlm_weight=1)
-    cb.train(df['review'], df.C_true, df.T_true, df.Y_sim)
-    print(cb.ATE(df.C_true, df['review'], platt_scaling=True))
+    print(df.T)
+    cb.train(df['text'], df['C'], df['T'], df['Y'], epochs=1)
+    print(cb.ATE(df['C'], df.text, platt_scaling=True))
 
 
 

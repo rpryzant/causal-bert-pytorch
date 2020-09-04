@@ -32,8 +32,8 @@ Once trained the resulting BERT embeddings will be sufficient for some causal in
 df = pd.read_csv('testdata.csv')
 cb = CausalBertWrapper(batch_size=2,
     g_weight=0.1, Q_weight=0.1, mlm_weight=1)
-cb.train(df['review'], df.C_true, df.T_true, df.Y_sim, epochs=1)
-print(cb.ATE(df.C_true, df['review'], platt_scaling=True))
+cb.train(df['text'], df['C'], df['T'], df['Y'], epochs=1)
+print(cb.ATE(df.C, df['text'], platt_scaling=True))
 ```
 
 
@@ -52,10 +52,10 @@ cb = CausalBertWrapper(
 Then **train**
 ```
 cb.train(
-  df['review'],    # list of texts
-  df.C_true,       # list of confounds
-  df.T_true,       # list of treatments
-  df.Y_sim,        # list of outcomes
+  df['text'],    # list of texts
+  df['C'],       # list of confounds
+  df['T'],       # list of treatments
+  df['Y'],        # list of outcomes
   epochs=1)        # training epochs
 ```
 
@@ -63,16 +63,16 @@ Perform **inference**
 
 ```
 ( ( P(Y=1|T=1), P(Y=0|T=1)), ( P(Y=1|T=0), P(Y=0|T=0) ), ... =  cb.inference(
-  df['review'],   # list of texts
-  df.C_true)      # list of confounds
+  df['text'],   # list of texts
+  df['C'])      # list of confounds
 ```
 
 Or estimate an **average treatment effect**
 
 ```
 ATE = cb.ate(
-  df['review'],   # list of texts
-  df.C_true,      # list of confounds
+  df['text'],   # list of texts
+  df['C'],      # list of confounds
   platt_scailing=False)    # https://en.wikipedia.org/wiki/Platt_scaling
 ```
 

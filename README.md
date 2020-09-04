@@ -29,11 +29,11 @@ Once trained the resulting BERT embeddings will be sufficient for some causal in
 # Example
 
 ```
-df = pd.read_csv('testdata.csv')
-cb = CausalBertWrapper(batch_size=2,
+df = pd.read_csv('testdata.csv')            
+cb = CausalBertWrapper(batch_size=2,                       # init a model wrapper
     g_weight=0.1, Q_weight=0.1, mlm_weight=1)
-cb.train(df['text'], df['C'], df['T'], df['Y'], epochs=1)
-print(cb.ATE(df['C'], df['text'], platt_scaling=True))
+cb.train(df['text'], df['C'], df['T'], df['Y'], epochs=1)  # train the model
+print(cb.ATE(df['C'], df['text'], platt_scaling=True))     # use the model to get an average treatment effect
 ```
 
 
@@ -55,8 +55,8 @@ cb.train(
   df['text'],    # list of texts
   df['C'],       # list of confounds
   df['T'],       # list of treatments
-  df['Y'],        # list of outcomes
-  epochs=1)        # training epochs
+  df['Y'],       # list of outcomes
+  epochs=1)      # training epochs
 ```
 
 Perform **inference**

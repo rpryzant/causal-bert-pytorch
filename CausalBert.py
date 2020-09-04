@@ -304,7 +304,7 @@ class CausalBertWrapper:
 if __name__ == '__main__':
     import pandas as pd
 
-    df = pd.read_csv('testdata')
+    df = pd.read_csv('testdata.csv')
     cb = CausalBertWrapper(batch_size=2,
         g_weight=0.1, Q_weight=0.1, mlm_weight=1)
     print(df.T)

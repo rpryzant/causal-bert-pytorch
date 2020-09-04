@@ -1,5 +1,5 @@
-# causal-bert-pytorch
-Pytorch implementation of ["Adapting Text Embeddings for Causal Inference" by Victor Veitch, Dhanya Sridhar, David M. Blei](https://arxiv.org/pdf/1905.12741.pdf). 
+# Causal Bert -- in Pytorch!
+Pytorch implementation of ["Adapting Text Embeddings for Causal Inference" by Victor Veitch, Dhanya Sridhar, and David M. Blei](https://arxiv.org/pdf/1905.12741.pdf). 
 
 # Quickstart
 

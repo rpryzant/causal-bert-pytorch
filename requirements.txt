@@ -1,8 +1,8 @@
-sklearn
-scipy
-torch
-torchvision
-keras
-tensorflow
-transformers
-pandas
+sklearn==0.0
+scipy==1.4.1
+torch==1.6.0
+torchvision==0.11.1
+keras==2.6.0
+tensorflow==2.1.0
+transformers==4.12.2
+pandas==0.25.3
